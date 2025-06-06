@@ -3,7 +3,11 @@
 # ───────── CONFIGURAÇÕES ─────────
 USER_AGENT="Mozilla/5.0 (X11; Linux x86_64)"
 TMP_FILE="resultado.html"
+RESULT_FILE="resultados.txt"
 LINHA="──────────────────────────────────────────────"
+
+# Limpa resultado anterior
+> "$RESULT_FILE"
 
 # ───────── CABEÇALHO ─────────
 clear
@@ -15,6 +19,10 @@ echo -e "\e[1;36m$LINHA\e[0m"
 echo -ne "\n\e[1;33mDigite o nome no formato: nome+sobrenome+...\e[0m\n> "
 read NOME
 NOME=$(echo "$NOME" | tr '[:upper:]' '[:lower:]')
+
+# ───────── VARIÁVEL DE CONTAGEM ─────────
+COUNT=0
+CPF_REGISTRADOS=()
 
 # ───────── LAÇO DE PÁGINAS ─────────
 for PAGINA in $(seq 1 100); do
@@ -43,12 +51,32 @@ for PAGINA in $(seq 1 100); do
     ORGAO=$(echo "$bloco" | grep -oP '(?<=Órgão: </strong>).*?(?=<)' | head -1)
     CARGO=$(echo "$bloco" | grep -oP '(?<=Cargo: </strong>).*?(?=<)' | head -1)
 
+    # Evita duplicados com base no CPF
+    if [[ " ${CPF_REGISTRADOS[*]} " =~ " $CPF " ]]; then
+      continue
+    fi
+    CPF_REGISTRADOS+=("$CPF")
+    ((COUNT++))
+
+    # Exibe no terminal
     echo -e "\e[1;36m$LINHA"
-    echo -e "\e[1;37mNOME :\e[0m $NOME_COMPLETO"
-    echo -e "\e[1;37mCPF  :\e[0m $CPF"
-    echo -e "\e[1;37mÓRGÃO:\e[0m $ORGAO"
-    echo -e "\e[1;37mCARGO:\e[0m $CARGO"
+    echo -e "\e[1;37mPESSOA ($COUNT)"
+    echo -e "NOME : $NOME_COMPLETO"
+    echo -e "CPF  : $CPF"
+    echo -e "ÓRGÃO: $ORGAO"
+    echo -e "CARGO: $CARGO"
+
+    # Salva no .txt
+    {
+      echo "$LINHA"
+      echo "PESSOA ($COUNT)"
+      echo "NOME : $NOME_COMPLETO"
+      echo "CPF  : $CPF"
+      echo "ÓRGÃO: $ORGAO"
+      echo "CARGO: $CARGO"
+    } >> "$RESULT_FILE"
   done
 done
 
 echo -e "\e[1;36m$LINHA\e[0m"
+echo -e "\n\e[1;32m[✓] Consulta finalizada. Resultados salvos em:\e[0m $RESULT_FILE"
